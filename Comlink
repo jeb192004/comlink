@@ -1,0 +1,259 @@
+package com.jeb.swgohfun;
+
+import android.os.AsyncTask;
+import android.util.Log;
+
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.URL;
+
+public class Comlink extends AsyncTask<Void, Void, JSONObject> {
+    private static String BASE_URL = "";
+    private static final String PLAYER_ENDPOINT = "/player";
+    private static final String GUILD_ENDPOINT = "/guild";
+    private static final String DATA_ENDPOINT = "/data";
+    private static final String EVENTS_ENDPOINT = "/getEvents";
+    private static final String LEADERBOARD_ENDPOINT = "/getLeaderboard";
+    private static final String PLAYER_ARENA_ENDPOINT = "/playerArena";
+    private static final String GUILD_SEARCH_ENDPOINT = "/getGuilds";
+    private static final String TAG = Comlink.class.getSimpleName();
+
+    private JSONResponseListener mListener;
+    private String mEndpoint;
+    private JSONObject mPayload;
+
+    public Comlink(JSONResponseListener listener) {
+        mListener = listener;
+    }
+
+    public void setBaseUrl(String url) {
+        // Set the BASE_URL from the MainActivity
+        // Add any necessary validations if required
+        // For simplicity, we assume the URL is valid
+        BASE_URL = url;
+    }
+
+    public void getPlayer(String allyCode, String playerId) {
+        if (BASE_URL == null || BASE_URL.isEmpty()) {
+            // Return an error to the previous activity or handle it as per your requirements
+            mListener.onComlinkResponse(null, "You need to set a Comlink Url in the Settings first");
+            return;
+        }
+        mEndpoint = PLAYER_ENDPOINT;
+        mPayload = new JSONObject();
+        try {
+            JSONObject payloadData = new JSONObject();
+            if(allyCode!=null){
+                if(allyCode.length()<9){
+                    mListener.onComlinkResponse(null, "Invalid Allycode.  Allycode must be 9 characters with NO \"-\"");
+                    return;
+                }else{
+                    payloadData.put("allyCode", allyCode);
+                }
+            }else if(playerId!=null){
+                payloadData.put("playerId", playerId);
+            }else{
+                mListener.onComlinkResponse(null, "You need to input an Allycode");
+                return;
+            }
+
+            mPayload.put("payload", payloadData);
+            mPayload.put("enums", false);
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+        execute();
+    }
+
+    public void getGuild(String guildId, boolean includeRecentGuildActivityInfo) {
+        if (BASE_URL == null || BASE_URL.isEmpty()) {
+            // Return an error to the previous activity or handle it as per your requirements
+            mListener.onComlinkResponse(null, "You need to set a Comlink Url in the Settings first");
+            return;
+        }
+        mEndpoint = GUILD_ENDPOINT;
+        mPayload = new JSONObject();
+        try {
+            JSONObject payloadData = new JSONObject();
+            payloadData.put("guildId", guildId);
+            payloadData.put("includeRecentGuildActivityInfo", includeRecentGuildActivityInfo);
+            mPayload.put("payload", payloadData);
+            mPayload.put("enums", false);
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+        execute();
+    }
+
+    public void getSearchGuild(int filterType, String name, int startIndex, int count, JSONObject searchCriteria) {
+        if (BASE_URL == null || BASE_URL.isEmpty()) {
+            mListener.onComlinkResponse(null, "You need to set a Comlink Url in the Settings first.");
+            return;
+        }
+        if(filterType==4&&(name == null || name.isEmpty())){
+            mListener.onComlinkResponse(null, "\"Name\" cannot be empty.");
+            return;
+        }
+        mEndpoint = GUILD_SEARCH_ENDPOINT;
+        mPayload = new JSONObject();
+        try {
+            JSONObject payloadData = new JSONObject();
+            payloadData.put("filterType", filterType);//?
+            if(filterType==4){
+                payloadData.put("name", name);
+            }
+            payloadData.put("startIndex", 0);
+            payloadData.put("count", count);
+            if(filterType==5){
+                payloadData.put("searchCriteria", searchCriteria);//{"minMemberCount": 25,"maxMemberCount": 45,"minGuildGalacticPower": 430000000,"maxGuildGalacticPower": 430000000,"recentTbParticipatedIn": ["T05D"],"includeInviteOnly": true}
+            }
+            mPayload.put("payload", payloadData);
+            mPayload.put("enums", false);
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+        execute();
+    }
+
+    public void getData(String version, boolean includePveUnits, int requestSegment) {
+        if (BASE_URL == null || BASE_URL.isEmpty()) {
+            mListener.onComlinkResponse(null, "Error occurred during the request.");
+            return;
+        }
+
+        mEndpoint = DATA_ENDPOINT;
+        mPayload = new JSONObject();
+        try {
+            JSONObject payloadData = new JSONObject();
+            payloadData.put("version", version);
+            payloadData.put("includePveUnits", includePveUnits);
+            payloadData.put("requestSegment", requestSegment);
+            mPayload.put("payload", payloadData);
+            mPayload.put("enums", false);
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+        execute();
+    }
+
+    public void getEvents() {
+        if (BASE_URL == null || BASE_URL.isEmpty()) {
+            mListener.onComlinkResponse(null, "Error occurred during the request.");
+            return;
+        }
+
+        mEndpoint = EVENTS_ENDPOINT;
+        mPayload = new JSONObject();
+        try {
+            JSONObject payloadData = new JSONObject();
+            mPayload.put("payload", payloadData);
+            mPayload.put("enums", false);
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+        execute();
+    }
+
+    public void getLeaderboard(int leaderboardType, String eventInstanceId, String groupId, int league, int division) {
+        if (BASE_URL == null || BASE_URL.isEmpty()) {
+            mListener.onComlinkResponse(null, "Error occurred during the request.");
+            return;
+        }
+
+        mEndpoint = LEADERBOARD_ENDPOINT;
+        mPayload = new JSONObject();
+        try {
+            JSONObject payloadData = new JSONObject();
+            payloadData.put("leaderboardType", leaderboardType);
+            payloadData.put("eventInstanceId", eventInstanceId);
+            payloadData.put("groupId", groupId);
+            payloadData.put("league", league);
+            payloadData.put("division", division);
+            mPayload.put("payload", payloadData);
+            mPayload.put("enums", false);
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+        execute();
+    }
+
+    public void getPlayerArena(String allyCode, String playerId, boolean playerDetailsOnly) {
+        if (BASE_URL == null || BASE_URL.isEmpty()) {
+            mListener.onComlinkResponse(null, "Error occurred during the request.");
+            return;
+        }
+
+        mEndpoint = PLAYER_ARENA_ENDPOINT;
+        mPayload = new JSONObject();
+        try {
+            JSONObject payloadData = new JSONObject();
+            payloadData.put("allyCode", allyCode);
+            payloadData.put("playerId", playerId);
+            payloadData.put("playerDetailsOnly", playerDetailsOnly);
+            mPayload.put("payload", payloadData);
+            mPayload.put("enums", false);
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+        execute();
+    }
+
+    @Override
+    protected JSONObject doInBackground(Void... voids) {
+        JSONObject result = null;
+        HttpURLConnection urlConnection = null;
+        try {
+            URL url = new URL(BASE_URL + mEndpoint);
+            urlConnection = (HttpURLConnection) url.openConnection();
+            urlConnection.setRequestMethod("POST");
+            urlConnection.setRequestProperty("Content-Type", "application/json");
+            urlConnection.setDoOutput(true);
+            urlConnection.getOutputStream().write(mPayload.toString().getBytes());
+
+            int responseCode = urlConnection.getResponseCode();
+            if (responseCode == HttpURLConnection.HTTP_OK) {
+                String response = readStream(urlConnection.getInputStream());
+                result = new JSONObject(response);
+            } else {
+                Log.e(TAG, "HTTP Error: " + responseCode);
+            }
+        } catch (IOException | JSONException e) {
+            e.printStackTrace();
+        } finally {
+            if (urlConnection != null) {
+                urlConnection.disconnect();
+            }
+        }
+        return result;
+    }
+
+    @Override
+    protected void onPostExecute(JSONObject result) {
+        if (result == null) {
+            mListener.onComlinkResponse(null, "Error occurred during the request.");
+        } else {
+            mListener.onComlinkResponse(result, null);
+        }
+    }
+
+    private String readStream(InputStream inputStream) throws IOException {
+        BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
+        StringBuilder response = new StringBuilder();
+        String line;
+        while ((line = reader.readLine()) != null) {
+            response.append(line);
+        }
+        reader.close();
+        return response.toString();
+    }
+
+    public interface JSONResponseListener {
+        void onComlinkResponse(JSONObject response, String error_message);
+    }
+}
